@@ -3794,7 +3794,7 @@ enum Tfa98xx_Error tfa_dev_set_state(struct tfa_device *tfa, enum tfa_state stat
 		/* Make sure the DSP is running! */
 		do {
 			err = tfa98xx_dsp_system_stable_v6(tfa, &ready);
-			if (err != tfa_error_ok)
+			if ((int)err != (int)tfa_error_ok)
 				return err;
 			if (ready)
 				break;
@@ -3802,7 +3802,7 @@ enum Tfa98xx_Error tfa_dev_set_state(struct tfa_device *tfa, enum tfa_state stat
 
 		#ifdef VENDOR_EDIT
 		err = tfa98xx_set_mtp_v6(tfa, 1, TFA98XX_KEY2_PROTECTED_MTP0_MTPOTC_MSK);
-		if (err != tfa_error_ok) {
+		if ((int)err != (int)tfa_error_ok) {
 			return err;
 		}
 		#endif /* VENDOR_EDIT */
