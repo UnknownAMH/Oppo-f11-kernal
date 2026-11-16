@@ -40,8 +40,3 @@ See [BUILD_GUIDE.md](BUILD_GUIDE.md) for the full guide. Quick version:
   (Oppo-built originals) ship in `modules/`.
 - **Module signature verification** is forced off (`CONFIG_MODULE_SIG=n`).
 
-## Safety
-
-Known-good restore image: keep `stock_ramdisk_avbflags3_workingkernel.img`
-(Helicopterr kernel + pure stock ramdisk + AVB flags 3) around — flashing it
-from fastboot always recovers the device.
