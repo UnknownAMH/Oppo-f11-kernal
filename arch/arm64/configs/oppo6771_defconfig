@@ -272,11 +272,10 @@ CONFIG_SECCOMP_FILTER=y
 CONFIG_HAVE_GCC_PLUGINS=y
 # CONFIG_GCC_PLUGINS is not set
 CONFIG_HAVE_CC_STACKPROTECTOR=y
-CONFIG_CC_STACKPROTECTOR=y
-# CONFIG_CC_STACKPROTECTOR_NONE is not set
+# CONFIG_CC_STACKPROTECTOR is not set
+CONFIG_CC_STACKPROTECTOR_NONE=y
 # CONFIG_CC_STACKPROTECTOR_REGULAR is not set
 # CONFIG_CC_STACKPROTECTOR_STRONG is not set
-CONFIG_CC_STACKPROTECTOR=y
 CONFIG_THIN_ARCHIVES=y
 # CONFIG_LTO is not set
 CONFIG_ARCH_SUPPORTS_LTO_CLANG=y
@@ -4651,55 +4650,6 @@ CONFIG_TEE=y
 # CONFIG_OPTEE is not set
 
 #
-# KernelSU
-#
-CONFIG_KSU=y
-# CONFIG_KSU_DEBUG is not set
-# CONFIG_KSU_TOOLKIT_SUPPORT is not set
-CONFIG_KSU_FULL_NAME_FORMAT="%TAG_NAME%"
-# CONFIG_KSU_DISABLE_MANAGER is not set
-# CONFIG_KSU_DISABLE_POLICY is not set
-CONFIG_KSU_MULTI_MANAGER_SUPPORT=y
-# CONFIG_KSU_TRACEPOINT_HOOK is not set
-# CONFIG_KSU_MANUAL_HOOK is not set
-CONFIG_KSU_SUSFS=y
-
-#
-# KernelSU - SUSFS
-#
-
-#
-# ------------------------WARNING-------------------------------
-#
-
-#
-# BakaSU will check EVERY hooks in kernel compile process
-#
-
-#
-# If anything mismatch with simonpunk's patch, Kernel compile maybe FAILED!
-#
-
-#
-# See simonpunk's original patch if you face any compile failed due to hook check
-#
-
-#
-# Repo: https://gitlab.com/simonpunk/susfs4ksu
-#
-
-#
-# --------------------------------------------------------------
-#
-CONFIG_KSU_SUSFS_SUS_PATH=y
-CONFIG_KSU_SUSFS_SUS_MOUNT=y
-CONFIG_KSU_SUSFS_SUS_KSTAT=y
-CONFIG_KSU_SUSFS_SPOOF_UNAME=y
-CONFIG_KSU_SUSFS_ENABLE_LOG=y
-CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y
-CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y
-CONFIG_KSU_SUSFS_OPEN_REDIRECT=y
-CONFIG_KSU_SUSFS_SUS_MAP=y
 
 #
 # Firmware Drivers
@@ -4913,7 +4863,6 @@ CONFIG_EXFAT_DISCARD=y
 # CONFIG_EXFAT_DEBUG_MSG is not set
 CONFIG_EXFAT_DEFAULT_CODEPAGE=437
 CONFIG_EXFAT_DEFAULT_IOCHARSET="utf8"
-CONFIG_NOMOUNT=y
 # CONFIG_VIRTUALIZATION is not set
 
 #
