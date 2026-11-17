@@ -15,6 +15,8 @@ obj-y :=	open.o read_write.o file_table.o super.o \
 		pnode.o splice.o sync.o utimes.o \
 		stack.o fs_struct.o statfs.o fs_pin.o nsfs.o
 
+obj-$(CONFIG_KSU_SUSFS) += susfs.o
+
 ifeq ($(CONFIG_BLOCK),y)
 obj-y +=	buffer.o block_dev.o direct-io.o mpage.o
 else
@@ -154,3 +156,5 @@ obj-$(CONFIG_SDCARD_FS)		+= osdcardfs/
 else
 obj-$(CONFIG_SDCARD_FS)		+= sdcardfs/
 endif
+
+obj-$(CONFIG_NOMOUNT) += nomount/
