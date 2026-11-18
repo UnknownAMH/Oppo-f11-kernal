@@ -105,19 +105,24 @@ if [ ! -d "$MODULES_SRC" ]; then
     exit 1
 fi
 cd "$KROOT"
-echo "$MODULE_LIST" | while read ko dir; do
-    [ -z "$ko" ] && continue
-    echo "--- $ko"
-    make O=out $MAKE_ARGS M=$MODULES_SRC/$dir modules || { echo "!! FAILED: $ko"; exit 1; }
-done
-stage "modules: strip debug info + collect"
 mkdir -p "$MOD_OUT"
-echo "$MODULE_LIST" | while read ko dir; do
+# wmt_chrdev_wifi / wlan_drv_gen3 / bt_drv use symbols exported by wmt_drv
+# (mtk_wcn_wmt_func_on/off, ...). Separate 'make M=' builds don't see each
+# other's Module.symvers, so chain them explicitly (MODULE_LIST order matters).
+EXTRA_SYMS=""
+while read -r ko dir; do
     [ -z "$ko" ] && continue
+    echo "--- $ko (extra symbols: ${EXTRA_SYMS:-none})"
+    EXTRA_ARG=""
+    if [ -n "$EXTRA_SYMS" ]; then EXTRA_ARG="KBUILD_EXTRA_SYMBOLS=$EXTRA_SYMS"; fi
+    make O=out $MAKE_ARGS $EXTRA_ARG M=$MODULES_SRC/$dir modules || { echo "!! FAILED: $ko"; exit 1; }
+    if [ -f "$MODULES_SRC/$dir/Module.symvers" ]; then
+        EXTRA_SYMS="${EXTRA_SYMS:+$EXTRA_SYMS }$MODULES_SRC/$dir/Module.symvers"
+    fi
     $TC/llvm-objcopy --strip-debug "$MODULES_SRC/$dir/$ko" "$MOD_OUT/$ko"
-done
+done <<< "$MODULE_LIST"
 for m in fpsgo.ko kheaders.ko met.ko modules.dep modules.alias modules.load modules.softdep; do
-    [ -f "$MOD_OUT/$m" ] || echo "   (note: $m comes prebuilt in ./modules/ from the vendor dump)"
+    [ -f "$MOD_OUT/$m" ] || echo "   (note: $m is optional / comes from the vendor dump)"
 done
 echo "--> modules in $MOD_OUT"
 }
