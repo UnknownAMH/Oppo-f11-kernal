@@ -125,3 +125,10 @@ all.config
 
 # fetched Android config fragments
 kernel/configs/android-*.cfg
+
+# build inputs/outputs (re-created by setup_build_env.sh / build.sh)
+out/
+results/
+modules-out/
+toolchain/
+error.log
