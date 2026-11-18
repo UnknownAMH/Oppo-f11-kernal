@@ -126,26 +126,59 @@ pack_anykernel() {
 stage "pack: AnyKernel3 flashable zip"
 [ -d "$AK3_DIR" ] || { echo "!! $AK3_DIR missing"; exit 1; }
 [ -f "$OUT/arch/arm64/boot/Image.gz-dtb" ] || { echo "!! kernel not built yet — run ./build.sh kernel"; exit 1; }
-cd "$AK3_DIR"
-rm -f Image.gz-dtb
-cp "$OUT/arch/arm64/boot/Image.gz-dtb" .
-cp -f "$MOD_OUT"/*.ko modules/
+# Stage a throwaway copy: the tracked AnyKernel3/ tree is never modified.
+STAGE=$(mktemp -d "${TMPDIR:-/tmp}/ak3.XXXXXX")
+trap 'rm -rf "$STAGE"' RETURN
+cp -rp "$AK3_DIR"/. "$STAGE"/
+rm -rf "$STAGE/.git"
+# This template installs from modules/vendor/lib/modules -> /vendor/lib/modules
+mkdir -p "$STAGE/modules/vendor/lib/modules"
+rm -f "$STAGE/modules/vendor/lib/modules/placeholder"
+cp -f "$OUT/arch/arm64/boot/Image.gz-dtb" "$STAGE/"
+packed=0
+while read -r ko _; do
+    [ -z "$ko" ] && continue
+    if [ -f "$MOD_OUT/$ko" ]; then
+        cp -f "$MOD_OUT/$ko" "$STAGE/modules/vendor/lib/modules/"
+        packed=$((packed+1))
+    else
+        echo "   !! $ko missing from $MOD_OUT (run ./build.sh modules)"
+    fi
+done <<< "$MODULE_LIST"
+# Optional extras with no source in the vendor dump (fpsgo/kheaders/met):
+# only packed on request, since CRC compatibility is not guaranteed.
+if [ "${PACK_EXTRA:-0}" = "1" ]; then
+    for ko in "$MOD_OUT"/*.ko; do
+        [ -f "$ko" ] || continue
+        b=$(basename "$ko")
+        case "$MODULE_LIST" in *"$b"*) continue ;; esac
+        cp -f "$ko" "$STAGE/modules/vendor/lib/modules/"
+        packed=$((packed+1))
+    done
+fi
+if [ "$packed" -eq 0 ]; then
+    echo "   !! no .ko packed — the zip would boot but Wi-Fi/BT stay broken"
+else
+    echo "   packed $packed module(s) -> modules/vendor/lib/modules/"
+fi
 for f in modules.dep modules.alias modules.softdep modules.load; do
-    [ -f "$MOD_OUT/$f" ] && cp -f "$MOD_OUT/$f" modules/
+    [ -f "$MOD_OUT/$f" ] && cp -f "$MOD_OUT/$f" "$STAGE/modules/vendor/lib/modules/"
 done
-rm -rf "$RESULT/AnyKernel3_oppo6771.zip"
-python3 - "$RESULT/AnyKernel3_oppo6771.zip" <<'EOF'
+mkdir -p "$RESULT"
+rm -f "$RESULT/AnyKernel3_oppo6771.zip"
+python3 - "$STAGE" "$RESULT/AnyKernel3_oppo6771.zip" <<'EOF'
 import os, sys, zipfile
-out = sys.argv[1]
+stage, out = sys.argv[1], sys.argv[2]
 skip = ('.git', 'README.md', 'anykernel.sh.orig')
-with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-    for root, dirs, files in os.walk('.'):
+with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
+    for root, dirs, files in os.walk(stage):
         dirs[:] = [d for d in dirs if d not in ('.git',)]
         for f in files:
             p = os.path.join(root, f)
-            if any(s in p for s in skip):
+            rel = os.path.relpath(p, stage)
+            if any(s in rel for s in skip):
                 continue
-            z.write(p, p)
+            z.write(p, rel)
 print("zip entries:", len(zipfile.ZipFile(out).namelist()))
 EOF
 echo "--> $RESULT/AnyKernel3_oppo6771.zip  (flash from a CUSTOM recovery, e.g. OrangeFox)"

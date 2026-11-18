@@ -126,6 +126,7 @@ all.config
 # fetched Android config fragments
 kernel/configs/android-*.cfg
 out/
+out_stock_ref/
 results/
 *.img
 
@@ -134,7 +135,5 @@ toolchain/
 KernelSU/
 error.log
 # NoMount: keep only the kernel source (fs/nomount -> ../NoMount/kernel/src)
-NoMount/.git/
-NoMount/assets/
-NoMount/module/
-NoMount/userspace/
+NoMount/*
+!NoMount/kernel/
