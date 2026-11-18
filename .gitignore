@@ -128,3 +128,11 @@ kernel/configs/android-*.cfg
 out/
 results/
 *.img
+
+# local build/toolchain/vendored sources (re-cloned by CI)
+toolchain/
+KernelSU/
+error.log
+NoMount/*
+!NoMount/kernel/
+!NoMount/kernel/**

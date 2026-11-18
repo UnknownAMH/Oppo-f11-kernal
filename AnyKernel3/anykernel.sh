@@ -1,27 +1,36 @@
 ### AnyKernel3 Ramdisk Mod Script
 ## osm0sis @ xda-developers
-## customized for Oppo F11 / CPH1911 (MT6771, oppo6771)
-## - replaces kernel in boot (ramdisk untouched)
-## - disables AVB in the flashed boot image (PATCH_VBMETA_FLAG)
-## - pushes vendor modules to /vendor/lib/modules
 
 ### AnyKernel setup
 # global properties
 properties() { '
-kernel.string=4.14.186+ stock-tree kernel, module verification disabled
-do.devicecheck=0
-do.modules=0
+kernel.string=Helicopterr Kernel by Omar
+do.devicecheck=1
+do.modules=1
 do.systemless=0
 do.cleanup=1
 do.cleanuponabort=0
-device.name1=oppo6771
-device.name2=CPH1911
+device.name1=CPH1911
+device.name2=OP4863
+device.name3=CPH1969
+device.name4=
+device.name5=
 supported.versions=
 supported.patchlevels=
+supported.vendorpatchlevels=
 '; } # end properties
 
-## boot shell variables
-BLOCK=auto;
+
+
+### AnyKernel install
+## boot files attributes
+boot_attributes() {
+set_perm_recursive 0 0 755 644 $RAMDISK/*;
+set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
+} # end attributes
+
+# boot shell variables
+BLOCK=/dev/block/by-name/boot;
 IS_SLOT_DEVICE=0;
 RAMDISK_COMPRESSION=auto;
 PATCH_VBMETA_FLAG=auto;
@@ -29,44 +38,39 @@ PATCH_VBMETA_FLAG=auto;
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
 
-### push vendor modules to /vendor/lib/modules
-push_vendor_modules() {
-  ui_print "- Pushing vendor modules...";
-  local vpart;
-  for p in /dev/block/by-name/vendor /dev/block/bootdevice/by-name/vendor /dev/block/platform/*/by-name/vendor /dev/block/platform/*/*/by-name/vendor; do
-    if [ -e "$p" ]; then vpart=$p; break; fi;
-  done;
-  if [ ! "$vpart" ]; then
-    ui_print "  - vendor partition not found, skipping";
-    return 1;
-  fi;
-  mkdir -p /mnt/ak3_vendor;
-  if ! mount -t ext4 -o rw $vpart /mnt/ak3_vendor 2>/dev/null; then
-    if ! mount -o rw $vpart /mnt/ak3_vendor 2>/dev/null; then
-      ui_print "  - failed to mount vendor rw, skipping";
-      rmdir /mnt/ak3_vendor 2>/dev/null;
-      return 1;
-    fi;
-  fi;
-  local vdir=/mnt/ak3_vendor/lib/modules;
-  mkdir -p $vdir;
-  [ -f $vdir/modules.dep.bak ] || cp -f $vdir/modules.dep $vdir/modules.dep.bak 2>/dev/null;
-  cp -f $AKHOME/modules/*.ko $vdir/;
-  for f in modules.dep modules.alias modules.softdep modules.load; do
-    [ -f $AKHOME/modules/$f ] && cp -f $AKHOME/modules/$f $vdir/;
-  done;
-  chmod 0644 $vdir/*.ko $vdir/modules.* 2>/dev/null;
-  chown -R 0:0 $vdir 2>/dev/null;
-  chcon -R u:object_r:vendor_configs_file:s0 $vdir 2>/dev/null;
-  umount /mnt/ak3_vendor;
-  rmdir /mnt/ak3_vendor 2>/dev/null;
-  ui_print "  - vendor modules installed";
-  return 0;
-}
+# boot install
+dump_boot; # use split_boot to skip ramdisk unpack, e.g. for devices with init_boot ramdisk
+ui_print " ";
+ui_print "Mounting /vendor as read-write";
+mount -o rw,remount /vendor;
 
-### install
-split_boot;
-write_boot;
-push_vendor_modules;
-ui_print "- Done.";
-exit 0
+if mount | grep -q '/vendor ' && mount | grep '/vendor ' | grep -qv 'ro,'; then
+  : # mounted fine, fall through to no-op
+else
+  ui_print " ";
+  ui_print "ERROR: Failed to mount /vendor as read-write!";
+  ui_print "Vendor is read-only. Attempting to make it writable...";
+  ui_print " ";
+  ui_print "Unmounting /vendor...";
+  umount /vendor;
+  ui_print "Growing filesystem to max partition size...";
+  resize2fs -f /dev/block/by-name/vendor;
+  ui_print "Running e2fsck -E unshare_blocks...";
+  e2fsck -fy -E unshare_blocks /dev/block/by-name/vendor;
+  ui_print "Retrying mount after filesystem resize...";
+  mount -o rw /vendor;
+fi;
+
+if mount | grep -q '/vendor ' && mount | grep '/vendor ' | grep -qv 'ro,'; then
+  ui_print "/vendor mounted successfully as read-write";
+else
+  ui_print " ";
+  ui_print "ERROR: Still failed to mount /vendor as read-write!";
+  ui_print "Aborting installation...";
+  abort "Vendor mount failure";
+fi;
+
+
+
+write_boot; # use flash_boot to skip ramdisk repack, e.g. for devices with init_boot ramdisk
+## end boot install
