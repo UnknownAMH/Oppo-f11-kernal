@@ -80,9 +80,10 @@ wmt_drv.ko  wmt_chrdev_wifi.ko  wlan_drv_gen3.ko  bt_drv.ko  gps_drv.ko  fmradio
 
 Two things the script handles for you:
 
-1. **symvers chain** — separate `make M=` builds don't see each other's
-   `Module.symvers`; `wmt_drv` is built first and its exports are passed to the
-   next modules via `KBUILD_EXTRA_SYMBOLS`.
+1. **merged symvers** — separate `make M=` builds don't see each other's
+   `Module.symvers`; `wmt_drv` is built first and all exports are merged into a
+   single file passed via `KBUILD_EXTRA_SYMBOLS` (this 4.14 modpost only reads
+   one extra symvers file).
 2. **modpost warnings** — MTK modules reference each other's symbols, which the
    kernel resolves at load time; `KBUILD_MODPOST_WARN=1` keeps that non-fatal.
 

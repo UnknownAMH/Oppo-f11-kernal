@@ -104,16 +104,19 @@ mkdir -p "$MOD_OUT"
 # Separate 'make M=' runs do not see each other's Module.symvers, and MTK
 # modules reference symbols exported by other modules -> chain the symvers and
 # tolerate modpost warnings (symbols resolve at load time).
-EXTRA_SYMS=""
+# This 4.14 modpost reads only ONE extra symvers file (-e stores a single
+# entry), so merge every previous module's exports into one file.
+EXTRA_SYMS=/tmp/vendor-extra.symvers
+: > "$EXTRA_SYMS"
 while read -r ko dir; do
     [ -z "$ko" ] && continue
-    echo "--- $ko (extra symbols: ${EXTRA_SYMS:-none})"
+    echo "--- $ko (extra symbols: $EXTRA_SYMS, $(wc -l < "$EXTRA_SYMS") exported)"
     EXTRA_ARG=""
     if [ -n "$EXTRA_SYMS" ]; then EXTRA_ARG="KBUILD_EXTRA_SYMBOLS=$EXTRA_SYMS"; fi
     make O=out $MAKE_ARGS $EXTRA_ARG KBUILD_MODPOST_WARN=1 M=$MODULES_SRC/$dir modules \
         || { echo "!! FAILED: $ko"; exit 1; }
     if [ -f "$MODULES_SRC/$dir/Module.symvers" ]; then
-        EXTRA_SYMS="${EXTRA_SYMS:+$EXTRA_SYMS }$MODULES_SRC/$dir/Module.symvers"
+        cat "$MODULES_SRC/$dir/Module.symvers" >> "$EXTRA_SYMS"
     fi
     $TC/llvm-objcopy --strip-debug "$MODULES_SRC/$dir/$ko" "$MOD_OUT/$ko"
 done <<< "$MODULE_LIST"
