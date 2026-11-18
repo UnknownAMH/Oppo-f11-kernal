@@ -115,7 +115,10 @@ while read -r ko dir; do
     echo "--- $ko (extra symbols: ${EXTRA_SYMS:-none})"
     EXTRA_ARG=""
     if [ -n "$EXTRA_SYMS" ]; then EXTRA_ARG="KBUILD_EXTRA_SYMBOLS=$EXTRA_SYMS"; fi
-    make O=out $MAKE_ARGS $EXTRA_ARG M=$MODULES_SRC/$dir modules || { echo "!! FAILED: $ko"; exit 1; }
+    # KBUILD_MODPOST_WARN: MTK modules reference each other's symbols at load
+    # time; modpost cannot always resolve them across separate 'make M=' runs.
+    make O=out $MAKE_ARGS $EXTRA_ARG KBUILD_MODPOST_WARN=1 M=$MODULES_SRC/$dir modules \
+        || { echo "!! FAILED: $ko"; exit 1; }
     if [ -f "$MODULES_SRC/$dir/Module.symvers" ]; then
         EXTRA_SYMS="${EXTRA_SYMS:+$EXTRA_SYMS }$MODULES_SRC/$dir/Module.symvers"
     fi
