@@ -133,6 +133,8 @@ results/
 toolchain/
 KernelSU/
 error.log
-NoMount/*
-!NoMount/kernel/
-!NoMount/kernel/**
+# NoMount: keep only the kernel source (fs/nomount -> ../NoMount/kernel/src)
+NoMount/.git/
+NoMount/assets/
+NoMount/module/
+NoMount/userspace/
