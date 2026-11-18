@@ -11,13 +11,13 @@
 #  usage:  ./update_build_bakasu.sh
 #
 #  to publish the commit when ready:
-#     git -C /home/unknown/android_kernel_oppo_mt6771_stock push fork bakasu-local:bakasu
+#     git -C /home/unknown/android_kernel_oppo_mt6771_stock push fork bakasu
 # =============================================================================
 set -euo pipefail
 
 KERNEL_SRC=/home/unknown/android_kernel_oppo_mt6771_stock
 BUILDER=/home/unknown/Desktop/KernelBuild/build_bakasu.sh
-LOCAL_BRANCH=bakasu-local
+LOCAL_BRANCH=bakasu
 REMOTE=bakasu
 FORK_URL=https://github.com/UnknownAMH/Oppo-f11-kernal.git
 
