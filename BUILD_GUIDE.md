@@ -165,7 +165,9 @@ symbol CRCs match the running kernel. **The stock `/vendor/lib/modules/*.ko`
 will not match this kernel** — Wi-Fi/BT/touch modules then fail with
 `disagrees about version of symbol` / `Unknown symbol`.
 
-`./build.sh modules` rebuilds the six that matter:
+`./build.sh modules` rebuilds the six that matter (exports from earlier modules
+are merged into one symvers file — this 4.14 modpost reads only a single extra
+symvers file, so passing several paths silently drops all but one):
 
 ```
 wlan_drv_gen3.ko  wmt_chrdev_wifi.ko  wmt_drv.ko  bt_drv.ko  gps_drv.ko  fmradio_drv.ko
