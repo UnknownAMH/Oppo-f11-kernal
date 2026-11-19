@@ -132,7 +132,14 @@ results/
 
 # local build/toolchain/vendored sources (re-cloned by CI)
 toolchain/
-KernelSU/
+# KernelSU (BakaSU) is VENDORED: kernel/ + uapi/ are committed so the Kconfig
+# option for CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER lives in the tree.
+# Everything else (userspace, manager, docs, checkout) stays out of the repo.
+KernelSU/*
+!KernelSU/kernel/
+!KernelSU/uapi/
+!KernelSU/LICENSE
+!KernelSU/VENDORED.md
 error.log
 # NoMount: keep only the kernel source (fs/nomount -> ../NoMount/kernel/src)
 NoMount/*
