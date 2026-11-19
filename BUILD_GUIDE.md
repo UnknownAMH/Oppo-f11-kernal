@@ -4,8 +4,8 @@ Oppo F11 / CPH1911 — MT6771, Linux 4.14.186, oppo6771.
 
 This branch is a **pre-patched** kernel tree: the whole patch chain is already
 committed, so there is nothing to apply before compiling. What is *not*
-committed are the three big external pieces (vendor tree, KernelSU source,
-toolchains) — this guide covers getting them.
+committed are the two big external pieces (vendor tree, toolchains) — this
+guide covers getting them.
 
 ---
 
@@ -13,7 +13,7 @@ toolchains) — this guide covers getting them.
 
 | Component | Where |
 |---|---|
-| **BakaSU** integration | `drivers/kernelsu` → `../KernelSU/kernel` (source is cloned, not committed) |
+| **BakaSU** integration | `drivers/kernelsu` → `../KernelSU/kernel`, **vendored** in `KernelSU/kernel` + `KernelSU/uapi` (see `KernelSU/VENDORED.md`) |
 | **SUSFS 2.4** (all 10 features) | `fs/susfs.c`, `include/linux/susfs.h`, `include/linux/susfs_def.h` |
 | **SUSFS hooks, hand-merged** | `fs/namespace.c`, `fs/notify/fdinfo.c`, `fs/proc/task_mmu.c`, … |
 | **Inline (syscall) hooks** | 10 files: exec, open, stat, read_write, namei, selinux, reboot, … |
@@ -36,7 +36,7 @@ CPH1911.
 |---|---|---|---|
 | **Clang r383902** (AOSP clang 11) | `toolchain/clang/host/linux-x86/clang-r383902/bin` | ~600 MB | gitignored, re-downloaded |
 | **GCC 4.9 aarch64-linux-android** | `toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin` | ~250 MB | gitignored, re-cloned |
-| **KernelSU source (BakaSU)** | `KernelSU/` | ~96 MB | gitignored, re-cloned; `drivers/kernelsu` is a symlink into it |
+| ~~**KernelSU source (BakaSU)**~~ | `KernelSU/kernel` + `KernelSU/uapi` | ~1.6 MB | **committed**; `drivers/kernelsu` is a symlink into it. `userspace/`, `manager/` are not vendored |
 | **Oppo vendor tree** | `<parent-of-repo>/vendor` | ~1 GB | separate repo; **92 symlinks** in the kernel tree point at `../vendor/*`, 5 of them are real source dependencies |
 | `out/` build output | `out/` | 2–3 GB | build artifact |
 | Stock boot dump | — | 32 MB | device-specific; needed only for `./build.sh bootimg` |
@@ -52,8 +52,8 @@ drivers/input/oppo_secure_common         -> ../../../vendor/oplus/secure/common/
 drivers/input/touchscreen/oppo_touchscreen -> ../../../../vendor/oplus/kernel/touchscreen/oppo_touchscreen
 ```
 
-Without the vendor tree the build fails on dangling symlinks. Without
-`KernelSU/` it fails on `drivers/kernelsu`.
+Without the vendor tree the build fails on dangling symlinks. `KernelSU` no
+longer needs fetching — it ships with the branch.
 
 ---
 
@@ -62,7 +62,7 @@ Without the vendor tree the build fails on dangling symlinks. Without
 ```bash
 git clone -b bakasu https://github.com/UnknownAMH/Oppo-f11-kernal.git kernel && cd kernel
 
-./setup_build_env.sh          # toolchain + KernelSU + vendor tree (~1.6 GB, needs network)
+./setup_build_env.sh          # toolchain + vendor tree (~1 GB, needs network)
 ./build.sh kernel             # compile (30–90 min on a laptop)
 ./build.sh modules            # 6 vendor .ko with matching vermagic
 ./build.sh pack               # flashable zip in results/ (custom recovery)
@@ -91,10 +91,7 @@ git clone --depth=1 -b lineage-19.1 \
   https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9.git \
   toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
-# 4.3 KernelSU (BakaSU) — must be at ./KernelSU
-git clone --depth=1 -b main https://github.com/Baka-SU/BakaSU.git KernelSU
-
-# 4.4 Vendor tree — next to the kernel repo, not inside it
+# 4.3 Vendor tree — next to the kernel repo, not inside it
 git clone --depth=1 -b oppo/mt6771_r_11 \
   https://github.com/oppo-source/android_kernel_modules_oppo_mt6771.git ../android_kernel_modules_oppo_mt6771
 ln -s android_kernel_modules_oppo_mt6771/source/vendor ../vendor
@@ -248,7 +245,8 @@ the UID bitmap. Use the `bakasu sync-up` workflow for the full feature.
 `KERNEL_PREPATCHED=true` (no patch steps), `PACK_KMODULES=true`:
 
 - `KERNEL_SOURCE` = this repo, `KERNEL_BRANCH` = `bakasu`
-- `KERNELSU_AUTO_FORK` clones `Baka-SU/BakaSU` into `KernelSU/`
+- `KERNELSU_VENDORED=true` — no BakaSU clone; the committed `KernelSU/kernel`
+  is used (the "BakaSU sync-up" workflow still clones `sync-up` over it)
 - a step clones the vendor repo and creates the `vendor` symlink + drift fix
 - kernel build → config/vmlinux sanity check → 6 vendor modules → pack-process
   (which always re-copies the freshly built `Image.gz-dtb`, so a stale image

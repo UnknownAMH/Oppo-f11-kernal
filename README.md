@@ -10,7 +10,7 @@ See [BUILD_GUIDE.md](BUILD_GUIDE.md) for the full guide (what the branch has,
 what is missing, flashing, Wi-Fi/BT modules, troubleshooting). Quick version:
 
 ```bash
-./setup_build_env.sh   # fetch the 3 missing pieces: toolchain, KernelSU, vendor tree
+./setup_build_env.sh   # fetch the missing pieces: toolchain + vendor tree
 
 ./build.sh kernel      # kernel + module verification disabled
 ./build.sh modules     # vendor .ko modules with matching vermagic
@@ -26,7 +26,7 @@ what is missing, flashing, Wi-Fi/BT modules, troubleshooting). Quick version:
 #   gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin
 # clone the Oppo modules tree next to this repo (and link it as ../vendor):
 #   android_kernel_modules_oppo_mt6771-*  ->  ../vendor
-# clone BakaSU (KernelSU) into ./KernelSU
+# (KernelSU/BakaSU is vendored in this repo - nothing to clone)
 ```
 
 ## What's missing (not in this repo)
@@ -38,7 +38,7 @@ whole patch chain **is** committed — these are only build inputs and outputs.
 |---|---|---|---|
 | Clang r383902 (AOSP clang 11) | `toolchain/clang/host/linux-x86/clang-r383902/bin` | ~600 MB | `./setup_build_env.sh toolchain` |
 | GCC 4.9 `aarch64-linux-android` | `toolchain/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin` | ~250 MB | `./setup_build_env.sh toolchain` |
-| KernelSU source (**BakaSU**) | `KernelSU/` (`drivers/kernelsu` symlinks into it) | ~96 MB | `./setup_build_env.sh kernelsu` |
+| ~~KernelSU source~~ | `KernelSU/kernel` + `KernelSU/uapi` | ~1.6 MB | **committed** — see `KernelSU/VENDORED.md` |
 | Oppo vendor tree | `<parent>/vendor` → modules repo `source/vendor` | ~1 GB | `./setup_build_env.sh vendor` |
 | Build output | `out/` | 2–3 GB | produced by `./build.sh kernel` |
 | Stock boot dump | device-specific, `STOCK_BOOT=` override | 32 MB | only needed for `./build.sh bootimg` |
@@ -46,9 +46,10 @@ whole patch chain **is** committed — these are only build inputs and outputs.
 
 Two hard dependencies, if you prefer doing it by hand:
 
-- **`KernelSU/`** — `drivers/kernelsu` is a symlink to `../KernelSU/kernel`, so a
-  clone of `https://github.com/Baka-SU/BakaSU.git` (branch `main`) must sit at
-  `./KernelSU`, otherwise the kernel build fails on a dangling link.
+- **`KernelSU/`** — vendored: `drivers/kernelsu` is a symlink to
+  `../KernelSU/kernel`, and both `kernel/` and `uapi/` are committed (BakaSU
+  `main` @ `7b65bde0`). Nothing to clone; `KernelSU/VENDORED.md` has the update
+  procedure.
 - **`vendor/`** — 92 symlinks in this tree point at `../vendor/*`; 5 are real
   source (`arch/arm64/kernel/rootguard`, `block/oppo_foreground_io_opt`,
   `drivers/input/oppo_fp_drivers`, `drivers/input/oppo_secure_common`,

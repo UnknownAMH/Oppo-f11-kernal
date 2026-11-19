@@ -83,7 +83,13 @@ do_toolchain(){
 }
 
 do_kernelsu(){
-    stage "KernelSU: BakaSU ($KSU_BRANCH)"
+    stage "KernelSU: vendored BakaSU (KernelSU/kernel + KernelSU/uapi)"
+    if [ -f "$KSU_DIR/VENDORED.md" ] && have_ksu; then
+        # KernelSU is committed in this branch -- never clone over it.
+        echo "[+] vendored copy present (see KernelSU/VENDORED.md), no clone needed"
+        "$KROOT/patch_bakasu_kconfig.sh" "$KSU_DIR"
+        return
+    fi
     if have_ksu; then
         echo "[+] already present, skipping clone"
     else
@@ -93,8 +99,8 @@ do_kernelsu(){
         have_ksu || { echo "!! clone did not provide $KSU_DIR/kernel/Kconfig"; exit 1; }
         echo "[+] $(git -C "$KSU_DIR" log --oneline -1)"
     fi
-    # BakaSU main has no CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER (10th SUSFS feature);
-    # add it, otherwise kconfig drops it and the feature is compiled out silently.
+    # Fallback: BakaSU may have dropped CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER
+    # (10th SUSFS feature); without it kconfig compiles the feature out silently.
     "$KROOT/patch_bakasu_kconfig.sh" "$KSU_DIR"
 }
 
