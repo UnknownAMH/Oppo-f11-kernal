@@ -211,7 +211,11 @@ implements it and the defconfig enables it. Kconfig **silently drops unknown
 symbols**, so the feature used to be compiled out with no warning at all.
 
 `./patch_bakasu_kconfig.sh` inserts the option (the same block BakaSU `sync-up`
-ships) and is idempotent. `build.sh`, `setup_build_env.sh kernelsu`, the CI
+ships) and is idempotent. To refresh the vendored BakaSU itself use
+`./update_bakasu.sh` (`main`) or `./update_bakasu.sh sync-up` — it swaps
+`KernelSU/kernel` + `KernelSU/uapi`, keeps the Kconfig option and updates
+`KernelSU/VENDORED.md`; `--check` only shows the diff, `--build` chains the
+build pipeline. `build.sh`, `setup_build_env.sh kernelsu`, the CI
 workflow and the local Desktop pipeline all call it before `defconfig`, and the
 build now aborts if the option does not survive `olddefconfig`.
 

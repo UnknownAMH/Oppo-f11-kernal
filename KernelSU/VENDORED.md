@@ -20,15 +20,27 @@ error at all (BakaSU `main` does not declare it; `sync-up` does).
 
 ## Updating
 
-```bash
-# inside a scratch clone of BakaSU
-git clone https://github.com/Baka-SU/BakaSU.git /tmp/bakasu
-git -C /tmp/bakasu log --oneline -1
+Use the updater — one command, either branch:
 
+```bash
+./update_bakasu.sh                  # Baka-SU/BakaSU main  (stable)
+./update_bakasu.sh sync-up          # Baka-SU/BakaSU sync-up (has ksud/manager support)
+./update_bakasu.sh main --check     # show what would change, write nothing
+./update_bakasu.sh sync-up --build  # update, then build + commit locally
+./update_bakasu.sh main --force     # overwrite local edits inside KernelSU/
+```
+
+It clones upstream to a temp dir, prints the diff (changed files + SUSFS option
+additions/removals), replaces `KernelSU/kernel` + `KernelSU/uapi`, runs
+`patch_bakasu_kconfig.sh` as the fallback and rewrites the table above.
+
+Manual equivalent, if the script ever breaks:
+
+```bash
+git clone --depth=1 -b main https://github.com/Baka-SU/BakaSU.git /tmp/bakasu
 cd /path/to/android_kernel_oppo_mt6771_stock
 rm -rf KernelSU/kernel KernelSU/uapi
 cp -a /tmp/bakasu/kernel /tmp/bakasu/uapi KernelSU/
-git add -A KernelSU/kernel KernelSU/uapi
 ./patch_bakasu_kconfig.sh          # safety net: re-add the option if upstream dropped it
 git status --short                 # review, then commit
 ```
