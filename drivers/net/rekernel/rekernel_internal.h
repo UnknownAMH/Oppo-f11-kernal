@@ -77,3 +77,10 @@ int register_binder_cleanup(void);
 void unregister_binder_cleanup(void);
 
 #endif /* REKERNEL_INTERNAL_H */
+
+/* ---- 4.14 compat: cgroup_task_frozen/freeze not available ---- */
+#ifndef CONFIG_ARCH_HAS_CGROUP_TASK_FREEZE
+#define cgroup_task_frozen(task) frozen(task)
+#define cgroup_task_freeze(task) freezing(task)
+#endif
+
