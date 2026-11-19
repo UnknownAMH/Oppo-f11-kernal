@@ -55,6 +55,9 @@
 #ifdef OPLUS_FEATURE_HANS_FREEZE
 #include <linux/hans.h>
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
+#ifdef CONFIG_REKERNEL
+#include <net/rekernel.h>
+#endif
 
 /*
  * SLAB caches for signal bits.
@@ -1288,6 +1291,15 @@ int do_send_sig_info(int sig, struct siginfo *info, struct task_struct *p,
 		}
 	}
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
+#ifdef CONFIG_REKERNEL
+	if (is_frozen_tg(p)
+		&& (sig == SIGKILL || sig == SIGTERM || sig == SIGABRT || sig == SIGQUIT)) {
+		rekernel_report(SIGNAL, sig,
+			task_tgid_nr(current), current,
+			task_tgid_nr(p), p,
+			false, "signal", sig);
+	}
+#endif
 
 #if defined(CONFIG_CFS_BANDWIDTH)
 	if (is_belong_cpugrp(p)  /*signal receiver thread group is cpuctl?*/
