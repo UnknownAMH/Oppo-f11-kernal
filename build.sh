@@ -85,6 +85,10 @@ stage() { echo; echo "===== $1 ====="; }
 build_kernel() {
 stage "kernel: defconfig + disable module signature verification"
 cd "$KROOT"
+# BakaSU main lacks CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER in its Kconfig, and
+# kconfig drops unknown symbols silently -> the 10th SUSFS feature would be
+# compiled out without any error. Insert the option (idempotent) first.
+./patch_bakasu_kconfig.sh
 make O=out $MAKE_ARGS $DEFCONFIG
 # enforce: modules enabled, signature verification OFF (unsigned .ko load freely)
 ./scripts/config --file out/.config \
@@ -92,6 +96,12 @@ make O=out $MAKE_ARGS $DEFCONFIG
     -d CONFIG_MODULE_SIG -d CONFIG_MODULE_SIG_FORCE -d CONFIG_MODULE_SIG_SHA256
 make O=out $MAKE_ARGS olddefconfig
 grep -E 'CONFIG_MODULE_SIG|CONFIG_MODULES=' out/.config
+grep -q '^CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=y' out/.config || {
+    echo "!! CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER was dropped from out/.config"
+    echo "   BakaSU Kconfig is missing the option or CONFIG_KSU_SUSFS != y"
+    exit 1
+}
+echo "[+] SUSFS priority UID filter (10th feature) enabled in out/.config"
 stage "kernel: build (long step)"
 make O=out $MAKE_ARGS -j$JOBS Image.gz-dtb
 echo "--> $OUT/arch/arm64/boot/Image.gz-dtb"

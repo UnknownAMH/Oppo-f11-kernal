@@ -198,12 +198,30 @@ can be removed from `/vendor/lib/modules`.
 ## 8. Verify the build actually contains the features
 
 ```bash
-grep -E 'CONFIG_KSU=|CONFIG_KSU_SUSFS=|CONFIG_REKERNEL=|CONFIG_NOMOUNT=' out/.config
+grep -E 'CONFIG_KSU=|CONFIG_KSU_SUSFS=|CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER=|CONFIG_REKERNEL=|CONFIG_NOMOUNT=' out/.config
 strings out/vmlinux | grep -cE 'ksud|KernelSU|susfs'      # expect > 0
+nm out/fs/susfs.o | grep susfs_is_priority_uid_filtered    # 10th feature really compiled
 ```
 
-CI fails the build if either check comes back empty — the same test is worth
+CI fails the build if the config check comes back empty — the same test is worth
 running locally.
+
+### The 10th SUSFS feature (PRIORITY_UID_FILTER)
+
+BakaSU `main` does not declare `CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER` in
+`KernelSU/kernel/Kconfig`, even though the kernel source in this branch
+implements it and the defconfig enables it. Kconfig **silently drops unknown
+symbols**, so the feature used to be compiled out with no warning at all.
+
+`./patch_bakasu_kconfig.sh` inserts the option (the same block BakaSU `sync-up`
+ships) and is idempotent. `build.sh`, `setup_build_env.sh kernelsu`, the CI
+workflow and the local Desktop pipeline all call it before `defconfig`, and the
+build now aborts if the option does not survive `olddefconfig`.
+
+Note: BakaSU `main`'s **userspace** (ksud + manager) still lacks
+`CMD_SUSFS_SET_PRIORITY_UID_FILTER` (0x60030) and the manager tab, so the kernel
+hook exists and is reported in `show enabled_features`, but nothing can populate
+the UID bitmap. Use the `bakasu sync-up` workflow for the full feature.
 
 ---
 
