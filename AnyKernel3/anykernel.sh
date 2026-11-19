@@ -5,7 +5,7 @@
 # global properties
 properties() { '
 kernel.string=Helicopterr Kernel by Omar
-do.devicecheck=1
+do.devicecheck=0
 do.modules=1
 do.systemless=0
 do.cleanup=1
@@ -31,7 +31,7 @@ set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 
 # boot shell variables
 BLOCK=/dev/block/by-name/boot;
-IS_SLOT_DEVICE=0;
+IS_SLOT_DEVICE=auto;
 RAMDISK_COMPRESSION=auto;
 PATCH_VBMETA_FLAG=auto;
 

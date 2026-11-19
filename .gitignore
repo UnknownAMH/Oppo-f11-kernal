@@ -132,6 +132,9 @@ results/
 
 # local build/toolchain/vendored sources (re-cloned by CI)
 toolchain/
+# leftovers from the original patch process (the branch is already pre-patched)
+rekernel_patches.sh
+susfs_inline_hook_patches.sh
 # KernelSU (BakaSU) is VENDORED: kernel/ + uapi/ are committed so the Kconfig
 # option for CONFIG_KSU_SUSFS_PRIORITY_UID_FILTER lives in the tree.
 # Everything else (userspace, manager, docs, checkout) stays out of the repo.

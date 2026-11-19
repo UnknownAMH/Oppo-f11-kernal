@@ -64,8 +64,11 @@ md5sum "$OUTDIR/new-boot.img" "$OUTDIR/Image.gz-dtb"
 # ---------------------------------------------------------------- 4. commit
 stage "commit: source changes (local only, no push)"
 cd "$KERNEL_SRC"
-# build outputs are gitignored (out/, *.ko, *.img) - only real source edits land
-git add -u
+# build outputs are gitignored (out/, *.ko, *.img), so -A only picks up real
+# source work: modifications AND brand-new files (git add -u missed new files)
+git add -A
+echo "--- staged:"
+git diff --cached --stat | tail -20
 
 if git diff --cached --quiet; then
     echo "[+] no source changes to commit"
