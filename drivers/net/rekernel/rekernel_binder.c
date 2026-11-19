@@ -562,3 +562,88 @@ void unregister_binder_cleanup(void) {
 	binder_cleanup_wq = NULL;
 }
 #endif
+
+/* ---- 4.14 compat: binder hooks for kernels < 5.10 ---- */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 10, 0))
+static void line_binder_alloc_new_buf_locked(void *data, size_t size,
+					 struct binder_alloc *alloc, int is_async)
+{
+	struct task_struct *p = NULL;
+	if (is_async
+		&& (alloc->free_async_space < 3 * (size + sizeof(struct binder_buffer))
+		|| (alloc->free_async_space < WARN_AHEAD_SPACE))) {
+		rcu_read_lock();
+		p = find_task_by_vpid(alloc->pid);
+		rcu_read_unlock();
+		if (p != NULL && line_is_frozen(p)) {
+#ifdef DEBUG
+			pr_info("[Re-Kernel LKM] Binder Free buffer full! from=%d | target=%d\n",
+				task_uid(current).val, task_uid(p).val);
+#endif
+			if (rekernel_netlink_ready()) {
+				char binder_kmsg[PACKET_SIZE];
+				int len = scnprintf(binder_kmsg, sizeof(binder_kmsg),
+					"type=Binder,bindertype=free_buffer_full,oneway=1,from_pid=%d,from=%d,target_pid=%d,target=%d,rpc_name=%s,code=%d;",
+					task_tgid_nr(current), task_uid(current).val,
+					task_tgid_nr(p), task_uid(p).val, "FREE_BUFFER_FULL", -1);
+				sendMessage(binder_kmsg, len);
+			}
+		}
+	}
+}
+
+static void line_binder_preset(void *data, struct hlist_head *hhead,
+			       struct mutex *lock)
+{
+	if (binder_procs == NULL)
+		binder_procs = hhead;
+
+	if (binder_procs_lock == NULL)
+		binder_procs_lock = lock;
+}
+
+static void line_binder_reply(void *data, struct binder_proc *target_proc,
+			      struct binder_proc *proc,
+			      struct binder_thread *thread,
+			      struct binder_transaction_data *tr)
+{
+	if (!target_proc || !proc)
+		return;
+
+	if (line_is_frozen(target_proc->tsk)) {
+		rekernel_report_no_binder_rpc_code(REPLY,
+			task_tgid_nr(proc->tsk), proc->tsk,
+			task_tgid_nr(target_proc->tsk), target_proc->tsk,
+			false, "binder_reply");
+	}
+}
+
+static void line_binder_transaction(void *data, struct binder_proc *proc,
+				    struct binder_thread *thread,
+				    struct binder_transaction_data *tr, int reply,
+				    binder_size_t extra_buffers_size)
+{
+	struct binder_proc *target_proc = NULL;
+	struct binder_thread *target_thread = NULL;
+	struct binder_node *target_node = NULL;
+
+	if (reply) {
+		/* reply path */
+		return;
+	}
+
+	if (tr->target.handle) {
+		/* handle-based transaction */
+		return;
+	} else {
+		/* context manager transaction */
+		return;
+	}
+}
+
+static long line_copy_from_user_compatible(void *dst, const void __user *src, size_t size)
+{
+	return copy_from_user(dst, src, size);
+}
+#endif /* LINUX_VERSION_CODE < 5.10.0 */
+
