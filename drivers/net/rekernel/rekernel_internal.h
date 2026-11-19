@@ -21,8 +21,13 @@
 #include <linux/cgroup.h>
 #include "rekernel.h"
 
-#define USER_PORT			100
-#define PACKET_SIZE			256
+/* ---- 4.14 compat: enum aliases ---- */
+#define BINDER		REK_BINDER
+#define SIGNAL		REK_SIGNAL
+#define NETWORK		REK_NETWORK
+#define REPLY		REK_REPLY
+#define TRANSACTION	REK_TRANSACTION
+#define OVERFLOW	REK_OVERFLOW
 
 /* ---- freeze-state predicate (shared by binder / signal / netfilter) ---- */
 
@@ -76,11 +81,15 @@ void unregister_netfilter(void);
 int register_binder_cleanup(void);
 void unregister_binder_cleanup(void);
 
-#endif /* REKERNEL_INTERNAL_H */
-
 /* ---- 4.14 compat: cgroup_task_frozen/freeze not available ---- */
 #ifndef CONFIG_ARCH_HAS_CGROUP_TASK_FREEZE
 #define cgroup_task_frozen(task) frozen(task)
 #define cgroup_task_freeze(task) freezing(task)
 #endif
 
+/* ---- 4.14 compat: JOBCTL_TRAP_FREEZE not available ---- */
+#ifndef JOBCTL_TRAP_FREEZE
+#define JOBCTL_TRAP_FREEZE 0
+#endif
+
+#endif /* REKERNEL_INTERNAL_H */

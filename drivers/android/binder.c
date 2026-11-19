@@ -3744,7 +3744,7 @@ static void binder_transaction(struct binder_proc *proc,
 			rekernel_report(BINDER, REPLY,
 				task_tgid_nr(proc->tsk), proc->tsk,
 				task_tgid_nr(target_proc->tsk), target_proc->tsk,
-				false, "binder_reply", tr->code);
+				false, tr);
 		}
 #endif
 #ifdef BINDER_WATCHDOG
