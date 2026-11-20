@@ -29,6 +29,18 @@
 #include <linux/elevator.h>
 
 #include "blk.h"
+
+/*
+ * 4.14 compat: blk_discard_mergable is static inline in blk-merge.c,
+ * not exported. Duplicate the logic here.
+ */
+static inline bool cpq_discard_mergable(struct request *req)
+{
+	if (req_op(req) == REQ_OP_DISCARD &&
+	    queue_max_discard_segments(req->q) > 1)
+		return true;
+	return false;
+}
 #include "blk-mq.h"
 #include "blk-mq-debugfs.h"
 #include "blk-mq-tag.h"
@@ -443,8 +455,6 @@ static int cpq_init_sched(struct request_queue *q, struct elevator_type *e)
 	eq->elevator_data = cd;
 	q->elevator = eq;
 
-	blk_queue_flag_set(QUEUE_FLAG_SQ_SCHED, q);
-
 	return 0;
 }
 
@@ -723,7 +733,7 @@ static int cpq_request_merge(struct request_queue *q, struct request **req,
 			BUG_ON(sector != blk_rq_pos(__rq));
 			if (elv_bio_merge_ok(__rq, bio)) {
 				*req = __rq;
-				if (blk_discard_mergable(__rq))
+				if (cpq_discard_mergable(__rq))
 					return ELEVATOR_DISCARD_MERGE;
 				return ELEVATOR_FRONT_MERGE;
 			}
@@ -786,7 +796,7 @@ static ssize_t __FUNC(struct elevator_queue *e, char *page)           \
 	int __data = __VAR;                                            \
 	if (__CONV)                                                    \
 		__data = jiffies_to_msecs(__data);                     \
-	return sysfs_emit(page, "%d\n", __data);                     \
+	return sprintf(page, "%d\n", __data);                        \
 }
 
 #define STORE_FUNCTION(__FUNC, __PTR, MIN, MAX, __CONV)                \
@@ -828,7 +838,7 @@ STORE_FUNCTION(cpq_prio_aging_expire_store, &cd->prio_aging_expire, 0, INT_MAX, 
 static ssize_t cpq_fore_timeout_show(struct elevator_queue *e, char *page)
 {
 	struct cpq_data *cd = e->elevator_data;
-	return sysfs_emit(page, "%d\n",
+	return sprintf(page, "%d\n",
 	                  jiffies_to_msecs(cd->groups[CPQ_GROUP_FG].timeout));
 }
 
@@ -850,7 +860,7 @@ static ssize_t cpq_fore_timeout_store(struct elevator_queue *e,
 static ssize_t cpq_back_timeout_show(struct elevator_queue *e, char *page)
 {
 	struct cpq_data *cd = e->elevator_data;
-	return sysfs_emit(page, "%d\n",
+	return sprintf(page, "%d\n",
 	                  jiffies_to_msecs(cd->groups[CPQ_GROUP_BG].timeout));
 }
 
@@ -872,7 +882,7 @@ static ssize_t cpq_back_timeout_store(struct elevator_queue *e,
 static ssize_t cpq_slice_idle_show(struct elevator_queue *e, char *page)
 {
 	struct cpq_data *cd = e->elevator_data;
-	return sysfs_emit(page, "%llu\n", cd->slice_idle / 1000);
+	return sprintf(page, "%llu\n", cd->slice_idle / 1000);
 }
 
 static ssize_t cpq_slice_idle_store(struct elevator_queue *e,
@@ -893,7 +903,7 @@ static ssize_t cpq_slice_idle_store(struct elevator_queue *e,
 static ssize_t cpq_io_threshold_show(struct elevator_queue *e, char *page)
 {
 	struct cpq_data *cd = e->elevator_data;
-	return sysfs_emit(page, "%llu\n", cd->io_threshold);
+	return sprintf(page, "%llu\n", cd->io_threshold);
 }
 
 static ssize_t cpq_io_threshold_store(struct elevator_queue *e,
@@ -914,7 +924,7 @@ static ssize_t cpq_io_threshold_store(struct elevator_queue *e,
 static ssize_t cpq_cpq_log_show(struct elevator_queue *e, char *page)
 {
 	struct cpq_data *cd = e->elevator_data;
-	return sysfs_emit(page, "%u\n", cd->cpq_log);
+	return sprintf(page, "%u\n", cd->cpq_log);
 }
 
 static ssize_t cpq_cpq_log_store(struct elevator_queue *e,
