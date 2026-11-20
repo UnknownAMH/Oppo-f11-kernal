@@ -26,13 +26,13 @@
 #include <linux/hashtable.h>
 
 #include <trace/events/block.h>
+#include <linux/elevator.h>
 
 #include "blk.h"
 #include "blk-mq.h"
 #include "blk-mq-debugfs.h"
 #include "blk-mq-tag.h"
 #include "blk-mq-sched.h"
-#include "elevator.h"
 
 /*
  * Priority levels
