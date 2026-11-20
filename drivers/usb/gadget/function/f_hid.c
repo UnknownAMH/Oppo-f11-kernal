@@ -62,6 +62,7 @@ struct f_hidg {
 	struct usb_request		*req;
 
 	int				minor;
+	unsigned char			interval;
 	struct cdev			cdev;
 	struct usb_function		func;
 
@@ -794,6 +795,22 @@ static int hidg_bind(struct usb_configuration *c, struct usb_function *f)
 	hidg_hs_out_ep_desc.wMaxPacketSize = cpu_to_le16(hidg->report_length);
 	hidg_fs_out_ep_desc.wMaxPacketSize = cpu_to_le16(hidg->report_length);
 	/*
+	 * A nonzero interval overrides the endpoint poll rate the host is told to
+	 * use. The value is the raw bInterval: at high and super speed the period
+	 * is 2^(interval-1) microframes (125 us each), so 1 polls every 125 us
+	 * instead of the default 4 (1 ms); at full speed it is milliseconds.
+	 * Like the wMaxPacketSize writes above, this mutates the shared endpoint
+	 * descriptors at bind. Zero leaves the compiled-in defaults.
+	 */
+	if (hidg->interval) {
+		hidg_ss_in_ep_desc.bInterval = hidg->interval;
+		hidg_hs_in_ep_desc.bInterval = hidg->interval;
+		hidg_fs_in_ep_desc.bInterval = hidg->interval;
+		hidg_ss_out_ep_desc.bInterval = hidg->interval;
+		hidg_hs_out_ep_desc.bInterval = hidg->interval;
+		hidg_fs_out_ep_desc.bInterval = hidg->interval;
+	}
+	/*
 	 * We can use hidg_desc struct here but we should not relay
 	 * that its content won't change after returning from this function.
 	 */
@@ -927,6 +944,7 @@ CONFIGFS_ATTR(f_hid_opts_, name)
 
 F_HID_OPT(subclass, 8, 255);
 F_HID_OPT(protocol, 8, 255);
+F_HID_OPT(interval, 8, 255);
 F_HID_OPT(report_length, 16, 65535);
 
 static ssize_t f_hid_opts_report_desc_show(struct config_item *item, char *page)
@@ -986,6 +1004,7 @@ CONFIGFS_ATTR_RO(f_hid_opts_, dev);
 static struct configfs_attribute *hid_attrs[] = {
 	&f_hid_opts_attr_subclass,
 	&f_hid_opts_attr_protocol,
+	&f_hid_opts_attr_interval,
 	&f_hid_opts_attr_report_length,
 	&f_hid_opts_attr_report_desc,
 	&f_hid_opts_attr_dev,
@@ -1091,6 +1110,7 @@ static void hidg_unbind(struct usb_configuration *c, struct usb_function *f)
 static struct hidg_func_descriptor hid_data = {
 	.subclass = 0,      /* No subclass */
 	.protocol = 0,      /* Mouse Protocol */
+	.interval = 0,
 	.report_length = 4,
 	.report_desc_length = 7,
 	.report_desc = {
@@ -1121,6 +1141,7 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
 	hidg->minor = opts->minor;
 	hidg->bInterfaceSubClass = opts->subclass;
 	hidg->bInterfaceProtocol = opts->protocol;
+	hidg->interval = opts->interval;
 	hidg->report_length = opts->report_length;
 	hidg->report_desc_length = opts->report_desc_length;
 	if (opts->report_desc) {
@@ -1137,6 +1158,7 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
 	/* HACK, replace content, duplicate code from above */
 	hidg->bInterfaceSubClass = hid_data.subclass;
 	hidg->bInterfaceProtocol = hid_data.protocol;
+	hidg->interval = hid_data.interval;
 	hidg->report_length = hid_data.report_length;
 	hidg->report_desc_length = hid_data.report_desc_length;
 	hidg->report_desc = kmemdup(hid_data.report_desc,
