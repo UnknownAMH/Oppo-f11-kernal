@@ -85,7 +85,9 @@
 #include <linux/hans.h>
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
 #ifdef CONFIG_REKERNEL
-#include <net/rekernel.h>
+#ifdef CONFIG_REKERNEL
+#include <../rekernel/rekernel.h>
+#endif /* CONFIG_REKERNEL */
 #endif
 
 #ifdef CONFIG_MTK_TASK_TURBO
@@ -3740,13 +3742,11 @@ static void binder_transaction(struct binder_proc *proc,
 		target_proc->tmp_ref++;
 		binder_inner_proc_unlock(target_thread->proc);
 #ifdef CONFIG_REKERNEL
-		if (is_frozen_tg(target_proc->tsk)) {
-			rekernel_report(BINDER, REPLY,
-				task_tgid_nr(proc->tsk), proc->tsk,
-				task_tgid_nr(target_proc->tsk), target_proc->tsk,
-				false, tr);
-		}
-#endif
+		if (target_proc && target_proc->tsk && proc->tsk)
+			binder_reply_handler(task_tgid_nr(proc->tsk), proc->tsk,
+					     target_proc->pid, target_proc->tsk,
+					     false, tr);
+#endif /* CONFIG_REKERNEL */
 #ifdef BINDER_WATCHDOG
 		e->service[0] = '\0';
 #endif
@@ -3812,14 +3812,11 @@ static void binder_transaction(struct binder_proc *proc,
 		}
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
 #ifdef CONFIG_REKERNEL
-		if (!(tr->flags & TF_ONE_WAY) && target_proc
-			&& is_frozen_tg(target_proc->tsk)) {
-			rekernel_report_no_binder_rpc_code(TRANSACTION,
-				task_tgid_nr(proc->tsk), proc->tsk,
-				task_tgid_nr(target_proc->tsk), target_proc->tsk,
-				!(tr->flags & TF_ONE_WAY), "binder_transaction");
-		}
-#endif
+		if (target_proc && target_proc->tsk && proc->tsk)
+			binder_trans_handler(task_tgid_nr(proc->tsk), proc->tsk,
+					     target_proc->pid, target_proc->tsk,
+					     !!(tr->flags & TF_ONE_WAY), tr);
+#endif /* CONFIG_REKERNEL */
 #if defined(CONFIG_CFS_BANDWIDTH)
 		if (!(tr->flags & TF_ONE_WAY) /*report sync binder call*/
 			&& target_proc

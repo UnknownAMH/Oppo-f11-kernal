@@ -17,13 +17,39 @@ guide covers getting them.
 | **SUSFS 2.4** (all 10 features) | `fs/susfs.c`, `include/linux/susfs.h`, `include/linux/susfs_def.h` |
 | **SUSFS hooks, hand-merged** | `fs/namespace.c`, `fs/notify/fdinfo.c`, `fs/proc/task_mmu.c`, … |
 | **Inline (syscall) hooks** | 10 files: exec, open, stat, read_write, namei, selinux, reboot, … |
-| **Re:Kernel** (cgroup-v1 adapted) | `drivers/net/rekernel/` |
+| **Re:Kernel** (legacy non-GKI integration, cgroup-v1 adapted) | `drivers/rekernel/` + hooks in `drivers/android/binder.c`, `drivers/android/binder_alloc.c`, `kernel/signal.c` |
 | **Droidspaces** | `kernel/cgroup/cgroup.c` patch + `arch/arm64/configs/droidspaces.config` |
 | **NoMount** | `NoMount/kernel/src/` (`fs/nomount` → `../NoMount/kernel/src`) |
 | **BPF arraymap fix** | `kernel/bpf/arraymap.c` (`array_map_update_elem`) |
 | **Defconfig** | `arch/arm64/configs/oppo6771_defconfig` — `CONFIG_KSU=y`, all SUSFS features `=y`, `CONFIG_REKERNEL=y`, `CONFIG_NOMOUNT=y` |
 | **AnyKernel3 template** | `AnyKernel3/` (CPH1911/OP4863/CPH1969, `do.modules=1`, `/vendor` rw-mount + `resize2fs` fallback) — **no image inside** |
 | **Build scripts** | `build.sh`, `setup_build_env.sh`, `disable_avb.py` |
+
+### Re:Kernel notes
+
+The driver is the legacy non-GKI one from `Sakion-Team/Re-Kernel`'s
+`Integrate/` payload (`drivers/rekernel/`), not the GKI/LKM v11.x source:
+v11.x depends on Android vendor hooks (`trace/hooks/binder.h`,
+`trace/hooks/signal.h`, `android_vh_*` tracepoints) that this 4.14 tree does
+not have.
+
+Hooks are direct calls, matching the guide:
+
+* `binder_transaction()` → `binder_reply_handler()` / `binder_trans_handler()`
+* `binder_alloc_new_buf_locked()` → `binder_overflow_handler()` when
+  `free_async_space` drops below `WARN_AHEAD_SPACE`
+* `do_send_sig_info()` → `rekernel_report(RK_SIGNAL, …)` for
+  KILL/TERM/ABRT/QUIT
+
+Transport: netlink units 22–25, user port 100, 256-byte packets; the chosen
+unit is exported as `/proc/rekernel/<unit>`. `CONFIG_REKERNEL_NETWORK` is
+left off. The server is started by `late_initcall`, so the first report never
+sleeps inside a binder/signal lock.
+
+4.14 adjustments: `JOBCTL_TRAP_FREEZE` is forced to 0 (cgroup-v1 has no jobctl
+freeze trap), `frozen_task_group()` uses `cgroup_freezing()`, and the
+`report_type`/`binder_type` enumerators are prefixed `RK_` because bare
+`SIGNAL` collides with `include/linux/hans.h`.
 
 Verified: this source produced a kernel that **booted with working root** on a
 CPH1911.

@@ -232,4 +232,6 @@ source "drivers/nfc/st54-spi/Kconfig"
 #endif /* OPLUS_FEATURE_NFC_BRINGUP */
 
 source "drivers/kernelsu/Kconfig"
+
+source "drivers/rekernel/Kconfig"
 endmenu

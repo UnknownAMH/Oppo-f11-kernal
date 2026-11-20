@@ -36,7 +36,9 @@
 #include <linux/hans.h>
 #endif /*OPLUS_FEATURE_HANS_FREEZE*/
 #ifdef CONFIG_REKERNEL
-#include <net/rekernel.h>
+#ifdef CONFIG_REKERNEL
+#include <../rekernel/rekernel.h>
+#endif /* CONFIG_REKERNEL */
 #endif
 
 struct list_lru binder_alloc_lru;
@@ -405,19 +407,16 @@ static struct binder_buffer *binder_alloc_new_buf_locked(
 #ifdef CONFIG_REKERNEL
 	if (is_async
 		&& (alloc->free_async_space < 3 * (size + sizeof(struct binder_buffer))
-		|| (alloc->free_async_space < ((alloc->buffer_size / 2) * 9 / 10)))) {
+		|| (alloc->free_async_space < WARN_AHEAD_SPACE))) {
 		struct task_struct *p = NULL;
 		rcu_read_lock();
 		p = find_task_by_vpid(alloc->pid);
 		rcu_read_unlock();
-		if (p != NULL && is_frozen_tg(p)) {
-			rekernel_report_no_binder_rpc_code(OVERFLOW,
-				task_tgid_nr(current), current,
-				task_tgid_nr(p), p,
-				true, "free_buffer_full");
-		}
+		if (p != NULL)
+			binder_overflow_handler(task_tgid_nr(current), current,
+						p->pid, p, true, NULL);
 	}
-#endif
+#endif /* CONFIG_REKERNEL */
 	if (is_async &&
 	    alloc->free_async_space < size + sizeof(struct binder_buffer)) {
 		binder_alloc_debug(BINDER_DEBUG_BUFFER_ALLOC,
