@@ -810,6 +810,11 @@ static void susfs_run_sus_path_loop(void) {
 /* - Please note that path inside /sdcard will be still visible to MediaProvider module,
  *   since the uid of path like /sdcard/TWRP will be the uid of your MediaProvider module.
  */
+
+static inline bool is_i_uid_not_allowed(uid_t i_uid) {
+	return likely(current_uid().val != i_uid);
+}
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 bool susfs_is_inode_sus_path(struct mnt_idmap* idmap, struct inode *inode)
 #else
