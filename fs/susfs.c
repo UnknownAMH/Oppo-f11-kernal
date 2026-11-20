@@ -807,33 +807,6 @@ static void susfs_run_sus_path_loop(void) {
 	revert_creds(saved);
 }
 
-static inline bool is_i_uid_not_allowed(uid_t i_uid) {
-	return likely(current_uid().val != i_uid);
-}
-
-/*
- * Lockless lookup for the sus_path uid filter.
- * Returns true if the uid is hidden by the sus_path uid filter.
- */
-static inline bool susfs_is_sus_path_uid_filtered(uid_t uid) {
-	struct susfs_sus_path_uid_filter_bitmap *bitmap;
-
-	uid_t app_id = uid % 100000;
-
-	if (app_id < SUSFS_SUS_PATH_UID_FILTER_MIN_UID ||
-		app_id > SUSFS_SUS_PATH_UID_FILTER_MAX_UID)
-		return false;
-
-	bitmap = rcu_dereference(sus_path_uid_filter_bitmap);
-	if (likely(bitmap)) {
-		if (test_bit(app_id - SUSFS_SUS_PATH_UID_FILTER_MIN_UID, bitmap->bits)) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
 /* - Please note that path inside /sdcard will be still visible to MediaProvider module,
  *   since the uid of path like /sdcard/TWRP will be the uid of your MediaProvider module.
  */
@@ -893,10 +866,8 @@ bool susfs_is_inode_sus_path(struct inode *inode)
 		SUSFS_LOGI("hiding path with ino '%lu'\n", inode->i_ino);
 		return true;
 	}
-		SUSFS_LOGE("failed to create the thread susfs_sus_path_app_strings\n");
-	}
+	return false;
 }
-#endif // #ifdef CONFIG_KSU_SUSFS_SUS_PATH
 
 int susfs_get_data_path(struct path *path) {
 	return kern_path("/data", LOOKUP_FOLLOW, path);
