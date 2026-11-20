@@ -30,6 +30,7 @@ void acc_disconnect(void);
 static struct class *android_class;
 static struct device *android_device;
 static int index;
+static int gadget_index = 1;
 
 char *serial_string;
 int serial_idx;
@@ -1501,14 +1502,14 @@ static void android_work(struct work_struct *data)
 	spin_unlock_irqrestore(&cdev->lock, flags);
 
 	if (status[0]) {
-		kobject_uevent_env(&android_device->kobj,
+		kobject_uevent_env(&gi->dev->kobj,
 					KOBJ_CHANGE, connected);
 		pr_info("%s: sent uevent %s\n", __func__, connected[0]);
 		uevent_sent = true;
 	}
 
 	if (status[1]) {
-		kobject_uevent_env(&android_device->kobj,
+		kobject_uevent_env(&gi->dev->kobj,
 					KOBJ_CHANGE, configured);
 		pr_info("%s: sent uevent %s\n", __func__, configured[0]);
 		uevent_sent = true;
@@ -1525,7 +1526,7 @@ static void android_work(struct work_struct *data)
 	}
 
 	if (status[2]) {
-		kobject_uevent_env(&android_device->kobj,
+		kobject_uevent_env(&gi->dev->kobj,
 					KOBJ_CHANGE, disconnected);
 		pr_info("%s: sent uevent %s\n", __func__, disconnected[0]);
 		uevent_sent = true;
@@ -1855,31 +1856,49 @@ static struct device_attribute *android_usb_attributes[] = {
 	NULL
 };
 
+static void android_device_destroy(struct gadget_info *gi)
+{
+	struct device_attribute **attrs;
+	struct device_attribute *attr;
+
+	attrs = android_usb_attributes;
+	while ((attr = *attrs++))
+		device_remove_file(gi->dev, attr);
+	if (android_device == gi->dev)
+		android_device = NULL;
+	/* not device_destroy(): every gadget device shares devt 0 */
+	device_unregister(gi->dev);
+
+	kfree(serial_string);
+}
+
 static int android_device_create(struct gadget_info *gi)
 {
 	struct device_attribute **attrs;
 	struct device_attribute *attr;
 
 	INIT_WORK(&gi->work, android_work);
-	android_device = device_create(android_class, NULL,
-				MKDEV(0, 0), NULL, "android0");
-	if (IS_ERR(android_device))
-		return PTR_ERR(android_device);
-
 	serial_string = kzalloc(sizeof(char)*MAX_USB_STRING_WITH_NULL_LEN,
 			GFP_KERNEL);
 	serial_string[0] = '\0';
 
-	dev_set_drvdata(android_device, gi);
+	/* the primary gadget stays "android0", which is what userspace expects */
+	gi->dev = device_create(android_class, NULL, MKDEV(0, 0), NULL,
+			"android%d", android_device ? gadget_index++ : 0);
+	if (IS_ERR(gi->dev))
+		return PTR_ERR(gi->dev);
+
+	dev_set_drvdata(gi->dev, gi);
+	if (!android_device)
+		android_device = gi->dev;
 
 	attrs = android_usb_attributes;
 	while ((attr = *attrs++)) {
 		int err;
 
-		err = device_create_file(android_device, attr);
+		err = device_create_file(gi->dev, attr);
 		if (err) {
-			device_destroy(android_device->class,
-				       android_device->devt);
+			android_device_destroy(gi);
 			return err;
 		}
 	}
@@ -1896,26 +1915,13 @@ static int android_device_create(struct gadget_info *gi)
 #endif
 	return 0;
 }
-
-static void android_device_destroy(void)
-{
-	struct device_attribute **attrs;
-	struct device_attribute *attr;
-
-	attrs = android_usb_attributes;
-	while ((attr = *attrs++))
-		device_remove_file(android_device, attr);
-	device_destroy(android_device->class, android_device->devt);
-
-	kfree(serial_string);
-}
 #else
 static inline int android_device_create(struct gadget_info *gi)
 {
 	return 0;
 }
 
-static inline void android_device_destroy(void)
+static inline void android_device_destroy(struct gadget_info *gi)
 {
 }
 #endif
@@ -1987,8 +1993,8 @@ err:
 
 static void gadgets_drop(struct config_group *group, struct config_item *item)
 {
+	android_device_destroy(to_gadget_info(item));
 	config_item_put(item);
-	android_device_destroy();
 }
 
 static struct configfs_group_operations gadgets_ops = {
