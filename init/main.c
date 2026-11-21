@@ -1042,7 +1042,7 @@ static int __init set_debug_rodata(char *str)
 __setup("rodata=", set_debug_rodata);
 #endif
 
-#include <linux/securityfs.h>
+#include <linux/security.h>
 
 static int __init mount_securityfs_init(void)
 {
