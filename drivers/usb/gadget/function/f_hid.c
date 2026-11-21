@@ -1155,20 +1155,26 @@ static struct usb_function *hidg_alloc(struct usb_function_instance *fi)
 		}
 	}
 
-	/* HACK, replace content, duplicate code from above */
-	hidg->bInterfaceSubClass = hid_data.subclass;
-	hidg->bInterfaceProtocol = hid_data.protocol;
-	hidg->interval = hid_data.interval;
-	hidg->report_length = hid_data.report_length;
-	hidg->report_desc_length = hid_data.report_desc_length;
-	hidg->report_desc = kmemdup(hid_data.report_desc,
-			hid_data.report_desc_length,
-			GFP_KERNEL);
+	/*
+	 * Keep whatever configfs provided. The old vendor hack forced the
+	 * built-in 7-byte "Usage None" descriptor, report_length 4 and interval 0
+	 * on every instance, so any descriptor/interval written via configfs was
+	 * silently ignored and the host saw a useless HID device.
+	 * Fall back to the built-in descriptors only when nothing was configured.
+	 */
 	if (!hidg->report_desc) {
-		kfree(hidg);
-		mutex_unlock(&opts->lock);
-		return ERR_PTR(-ENOMEM);
+		hidg->report_desc_length = hid_data.report_desc_length;
+		hidg->report_desc = kmemdup(hid_data.report_desc,
+				hid_data.report_desc_length,
+				GFP_KERNEL);
+		if (!hidg->report_desc) {
+			kfree(hidg);
+			mutex_unlock(&opts->lock);
+			return ERR_PTR(-ENOMEM);
+		}
 	}
+	if (!hidg->report_length)
+		hidg->report_length = hid_data.report_length;
 
 
 	mutex_unlock(&opts->lock);
