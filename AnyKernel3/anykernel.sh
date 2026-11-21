@@ -33,10 +33,38 @@ set_perm_recursive 0 0 750 750 $RAMDISK/init* $RAMDISK/sbin;
 BLOCK=/dev/block/by-name/boot;
 IS_SLOT_DEVICE=auto;
 RAMDISK_COMPRESSION=auto;
-PATCH_VBMETA_FLAG=auto;
+PATCH_VBMETA_FLAG=true;
 
 # import functions/variables and setup patching - see for reference (DO NOT REMOVE)
 . tools/ak3-core.sh;
+
+# Disable AVB (Android Verified Boot) using Python script
+disable_avb() {
+    ui_print " ";
+    ui_print "Disabling AVB (Android Verified Boot)...";
+
+    # Use Python script to patch vbmeta flags to 3 (disabled)
+    if [ -f "/tmp/disable_avb.py" ]; then
+        python3 /tmp/disable_avb.py "$BOOTIMAGE"
+    elif [ -f "$TOOLS/disable_avb.py" ]; then
+        python3 "$TOOLS/disable_avb.py" "$BOOTIMAGE"
+    else
+        ui_print "Python script not found, using magiskboot fallback...";
+        if [ -f "$MAGISKBOOT" ]; then
+            "$MAGISKBOOT" --disable-verity --disable-verification "$BOOTIMAGE" 2>/dev/null || true
+        fi
+    fi
+
+    # Also patch vbmeta partition if exists (for A/B devices)
+    for part in vbmeta vbmeta_system vbmeta_vendor; do
+        if [ -e "/dev/block/by-name/$part" ]; then
+            ui_print "Patching $part partition...";
+            dd if=/dev/zero of="/dev/block/by-name/$part" bs=4096 count=1 2>/dev/null || true
+        fi
+    done
+
+    ui_print "AVB disabled.";
+}
 
 # boot install
 dump_boot; # use split_boot to skip ramdisk unpack, e.g. for devices with init_boot ramdisk
@@ -70,7 +98,8 @@ else
   abort "Vendor mount failure";
 fi;
 
-
+# Disable AVB
+disable_avb;
 
 write_boot; # use flash_boot to skip ramdisk repack, e.g. for devices with init_boot ramdisk
 ## end boot install

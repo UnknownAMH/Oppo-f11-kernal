@@ -108,12 +108,13 @@ modules_build(){
 }
 
 pack_boot(){
-    stage "pack: boot image (kernel + stock ramdisk + modules note) + AVB flags=3"
+    stage "pack: boot image (kernel + stock ramdisk + AnyKernel3 overlay + modules note) + AVB flags=3"
     local W; W=$(mktemp -d /tmp/bootpack.XXXXXX)
     trap 'rm -rf "$W"' RETURN
     cp "$STOCK_BOOT" "$W/base.bin"
     ( cd "$W" && "$MAGISKBOOT" unpack base.bin >/dev/null \
         && cp "$KERNEL_SRC/out/arch/arm64/boot/Image.gz-dtb" kernel \
+        && "$MAGISKBOOT" cpio ramdisk.cpio "add 0644 init.baseband-guard.rc $KERNEL_SRC/AnyKernel3/ramdisk/init.baseband-guard.rc" \
         && "$MAGISKBOOT" repack base.bin >/dev/null )
     python3 - "$W/new-boot.img" <<'PY'
 import sys

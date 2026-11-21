@@ -1,0 +1,7 @@
+# Mount securityfs for Baseband Guard LSM
+on early-init
+    mount securityfs securityfs /sys/kernel/security
+
+# Fallback: mount on post-fs if early-init missed it
+on post-fs
+    mount securityfs securityfs /sys/kernel/security

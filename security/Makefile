@@ -25,6 +25,8 @@ obj-$(CONFIG_SECURITY_TOMOYO)		+= tomoyo/
 obj-$(CONFIG_SECURITY_APPARMOR)		+= apparmor/
 obj-$(CONFIG_SECURITY_YAMA)		+= yama/
 obj-$(CONFIG_SECURITY_LOADPIN)		+= loadpin/
+
+# baseband-guard depends on selinux for flask.h generation
 obj-$(CONFIG_BBG)			+= baseband-guard/
 obj-$(CONFIG_CGROUP_DEVICE)		+= device_cgroup.o
 

@@ -251,19 +251,8 @@ static int __init bbg_init(void)
 	return 0;
 }
 
-#ifdef BBG_USE_DEFINE_LSM
-extern struct lsm_blob_sizes bbg_blob_sizes;
-#endif
-
-#ifndef BBG_USE_DEFINE_LSM
-security_initcall(bbg_init);
-#else
-DEFINE_LSM(baseband_guard) = {
-	.name = "baseband_guard",
-	.init = bbg_init,
-	.blobs = &bbg_blob_sizes
-};
-#endif
+/* Use late_initcall to ensure Baseband Guard initializes after SELinux */
+late_initcall(bbg_init);
 
 MODULE_DESCRIPTION("protect All Block & Power by TG@qdykernel");
 MODULE_AUTHOR("秋刀鱼 & https://t.me/qdykernel");
