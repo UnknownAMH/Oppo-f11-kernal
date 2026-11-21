@@ -5155,7 +5155,6 @@ CONFIG_SECURITY_PERF_EVENTS_RESTRICT=y
 CONFIG_SECURITY=y
 # CONFIG_SECURITY_WRITABLE_HOOKS is not set
 CONFIG_SECURITYFS=y
-CONFIG_LSM="lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,baseband_guard"
 CONFIG_SECURITY_NETWORK=y
 # CONFIG_SECURITY_NETWORK_XFRM is not set
 # CONFIG_SECURITY_PATH is not set
