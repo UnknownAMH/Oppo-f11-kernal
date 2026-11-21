@@ -34,7 +34,6 @@
 #include <linux/vmalloc.h>
 #include <linux/kernel_stat.h>
 #include <linux/start_kernel.h>
-#include <linux/security.h>
 #include <linux/smp.h>
 #include <linux/profile.h>
 #include <linux/rcupdate.h>
@@ -1042,18 +1041,6 @@ static int __init set_debug_rodata(char *str)
 __setup("rodata=", set_debug_rodata);
 #endif
 
-#include <linux/security.h>
-
-static int __init mount_securityfs_init(void)
-{
-    struct dentry *d = mount_securityfs();
-    if (IS_ERR(d)) {
-        pr_err("Failed to mount securityfs: %ld\n", PTR_ERR(d));
-        return PTR_ERR(d);
-    }
-    return 0;
-}
-early_initcall(mount_securityfs_init);
 
 #ifdef CONFIG_STRICT_KERNEL_RWX
 static void mark_readonly(void)
