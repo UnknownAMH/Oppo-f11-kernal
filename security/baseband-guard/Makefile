@@ -6,9 +6,9 @@ ccflags-y += -I$(srctree)/security/selinux -I$(srctree)/security/selinux/include
 ccflags-y += -I$(objtree)/security/selinux
 
 # baseband-guard depends on selinux for flask.h generation
-$(obj)/baseband_guard.o: $(objtree)/security/selinux/flask.h
+$(obj)/baseband_guard.o: $(obj)/flask.h
 # Also ensure selinux is built first
-$(objtree)/security/selinux/flask.h:
+$(obj)/flask.h:
 	$(Q)$(MAKE) $(build)=security/selinux flask.h
 
 obj-$(CONFIG_BBG) += bbg.o
