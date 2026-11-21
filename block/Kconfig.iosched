@@ -100,17 +100,6 @@ config BFQ_GROUP_IOSCHED
        Enable hierarchical scheduling in BFQ, using the blkio
        (cgroups-v1) or io (cgroups-v2) controller.
 
-config IOSCHED_CPQ
-	tristate "CPQ I/O scheduler (Xiaomi HyperOS)"
-	default n
-	---help---
-	  CPQ (Custom Priority Queue) I/O scheduler reverse-engineered
-	  from Xiaomi's HyperOS cpq.ko module. Implements a priority-aware
-	  blk-mq scheduler with three priority levels (RT, BE, IDLE),
-	  foreground/background group separation, deadline enforcement,
-	  and per-thread-group fairness.
-	  Targets mobile/embedded storage for responsive IO.
-
 endmenu
 
 endif
