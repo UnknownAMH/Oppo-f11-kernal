@@ -50,7 +50,7 @@ stage(){ echo; echo "===== $1 ====="; }
 
 check_toolchain(){
     [ -x "$TC/clang" ] || { echo "!! missing clang at $TC"; exit 1; }
-    [ -x "$GC/aarch64-linux-android-gcc" ] || { echo "!! missing gcc at $GC"; exit 1; }
+    [ -x "$GC/aarch64-linux-android-as" ] && [ -x "$GC/aarch64-linux-android-ld" ] || { echo "!! missing binutils at $GC"; exit 1; }
     "$TC/clang" --version | head -1
 }
 
