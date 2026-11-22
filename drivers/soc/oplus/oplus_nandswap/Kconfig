@@ -6,7 +6,7 @@ config NANDSWAP
 
 config NANDSWAP_DEBUG
 	bool "NAND Swap Debug"
-	depends on NANDSWAP && F2FS_FS
+	depends on NANDSWAP
 	default n
 	help
 	  Enable NAND swap debug features.
