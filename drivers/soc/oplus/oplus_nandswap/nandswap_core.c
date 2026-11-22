@@ -17,7 +17,7 @@
 #include <linux/pagevec.h>
 #include <linux/percpu_counter.h>
 #include <linux/psi.h>
-#include <linux/nandswap.h>
+#include "nandswap.h"
 
 struct task_struct *nswapoutd = NULL;
 
