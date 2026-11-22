@@ -1,1 +1,1 @@
-obj-y += nandswap_core.o
+obj-$(CONFIG_NANDSWAP) += nandswap_core.o

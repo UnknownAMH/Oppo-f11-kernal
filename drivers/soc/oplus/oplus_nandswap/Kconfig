@@ -1,12 +1,12 @@
 config NANDSWAP
-	bool "nandswap feature"
-	default n
+	tristate "NAND Swap Support"
+	depends on MMU
 	help
-	 nandswap feature
+	  Enable NAND swap support for MTK platforms.
 
 config NANDSWAP_DEBUG
-	bool "nandswap debug"
-	depends on F2FS_FS
+	bool "NAND Swap Debug"
+	depends on NANDSWAP && F2FS_FS
 	default n
 	help
-	 nandswap debug
+	  Enable NAND swap debug features.
